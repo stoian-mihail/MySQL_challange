@@ -1,0 +1,104 @@
+1. Table creation
+
+CREATE TABLE customers (
+	customer_id INT PRIMARY KEY,
+  	first_name VARCHAR(10),
+   	last_name VARCHAR(10),
+    	address VARCHAR (30)
+);
+
+CREATE TABLE categories (
+    	index_categ INT PRIMARY KEY AUTO_INCREMENT,
+	category_name VARCHAR(12)
+);
+
+CREATE TABLE products (
+ 	product_id INT PRIMARY KEY,
+ 	product_name VARCHAR (15),
+ 	price DECIMAL(7,2),
+ 	category INT,
+ 	FOREIGN KEY(category) REFERENCES categories(index_categ) ON DELETE SET null);
+
+
+CREATE TABLE all_orders(
+	order_id INT PRIMARY KEY AUTO_INCREMENT,
+   	customer_id INT,
+    	order_value DECIMAL(12, 2),
+    	order_date DATE,
+    	FOREIGN KEY(customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
+);
+
+CREATE TABLE ordered_items(
+	itemIndex INT PRIMARY KEY AUTO_INCREMENT,
+	product_id INT,
+  	quantity INT,
+   	order_id INT,
+	total_price DECIMAL(10,2),
+   	FOREIGN KEY(product_id) REFERENCES products(product_id) ON DELETE SET NULL,
+    	FOREIGN KEY(order_id) REFERENCES all_orders(order_id) ON DELETE CASCADE );
+
+2. Inserting data
+a.insert customers from mock data file customers.sql
+b.Insert categories from mock data file categories.sql
+
+c.INSERT PRODUCTS:
+// from mock data file products.sql
+
+d.INSERT ORDERS: When a user adds a product in the shopping cart, the order_id,customer_id is inserted into the all_orders table;
+for tests insert from mock data file "insert order Id customer id and order date.sql"
+
+
+e.insert ordered items data: when the user adds a product in the shopping cart a new row is inserted in the ordered_items table which will contain (itemIndex, product_id, quantity, order_id)
+for tests insert from "insert order_id quantity.sql"
+
+f. calculate the price*quantity and update the ordered_items table
+UPDATE ordered_items t3
+INNER JOIN (SELECT t1.itemIndex AS indexOfTotal, t2.price*t1.quantity as Total_price FROM ordered_items t1, products t2 WHERE t2.product_id=t1.product_id ORDER BY t1.itemIndex ASC) t4
+ON t3.itemIndex=t4.indexOfTotal
+SET t3.total_price = t4.Total_price
+WHERE
+t3.itemIndex = t4.indexOfTotal;
+  
+
+g. after the order is completed, update the order value by running the querry: 
+
+UPDATE all_orders SET all_orders.order_value = (SELECT SUM(total_price) FROM ordered_items WHERE ordered_items.order_id = all_orders.order_id)
+
+or by running the querry
+
+INNER JOIN (SELECT SUM(total_price) AS totalPrice,order_id FROM ordered_items GROUP BY order_id) t2 ON
+t1.order_id=t2.order_id
+SET
+t1.order_value=t2.totalPrice
+WHERE t1.order_id=t2.order_id;
+
+Querries:
+
+a. Customer with most orders:
+
+SELECT t2.first_name, t2.last_name, t1.customer_id, COUNT(*) FROM all_orders t1 INNER JOIN customers t2 ON t1.customer_id=t2.customer_id GROUP BY t1.customer_id LIMIT 1;
+
+b. query for the most sold product
+SELECT t2.product_name, t1.product_id, SUM(t1.quantity) AS TotalQuantity FROM ordered_items t1 INNER JOIN products t2 ON t1.product_id=t2.product_id GROUP BY product_id ORDER BY TotalQuantity DESC;
+
+c. reporting query for top customers (ones with most total order value)
+SELECT t1.first_name, t1.last_name, SUM(t2.order_value) AS TotalValue FROM all_orders t2 INNER JOIN customers t1 ON t1.customer_id=t2.customer_id GROUP BY t2.customer_id ORDER BY TotalValue DESC;
+
+d.reporting query for top 100 customers ranked by last order value
+SELECT  t2.first_name, t2.last_name, t1.customer_id, t1.order_id, t1.order_value, t1.order_date FROM all_orders t1 INNER JOIN customers t2 ON t1.customer_id=t2.customer_id WHERE t1.order_date IN (SELECT MAX(order_date) FROM all_orders GROUP BY customer_id) GROUP BY t1.customer_id ORDER BY t1.order_value DESC LIMIT 100;
+
+e. reporting query for customers with least orders in past 6months
+SELECT t2.first_name, t2.last_name, t1.customer_id, t1.order_id, t1.order_value, t1.order_date, COUNT(*) AS orders_last_6months FROM all_orders t1 INNER JOIN customers t2 ON t1.customer_id=t2.customer_id WHERE t1.order_date IN (SELECT order_date FROM all_orders where order_date > curdate() - interval 6 month GROUP BY customer_id) GROUP BY t1.customer_id ORDER BY orders_last_6months ASC;
+
+
+
+update the total price in ordered_item
+SELECT t1.itemIndex, t2.price*t1.quantity as Total_price FROM ordered_items t1, products t2 WHERE t2.product_id=t1.product_id ORDER BY t1.itemIndex ASC
+
+UPDATE ordered_items t3
+INNER JOIN (SELECT t1.itemIndex AS indexOfTotal, t2.price*t1.quantity as Total_price FROM ordered_items t1, products t2 WHERE t2.product_id=t1.product_id ORDER BY t1.itemIndex ASC) t4
+ON t3.itemIndex=t4.indexOfTotal
+SET t3.total_price = t4.Total_price
+WHERE
+t3.itemIndex = t4.indexOfTotal;
+
