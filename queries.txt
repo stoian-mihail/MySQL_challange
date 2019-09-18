@@ -72,11 +72,11 @@ SET
 t1.order_value=t2.totalPrice
 WHERE t1.order_id=t2.order_id;
 
-Querries:
+!!!!!!!!!!Querries:!!!!!!!!!!!!!
 
 a. Customer with most orders:
 
-SELECT t2.first_name, t2.last_name, t1.customer_id, COUNT(*) FROM all_orders t1 INNER JOIN customers t2 ON t1.customer_id=t2.customer_id GROUP BY t1.customer_id LIMIT 1;
+SELECT t2.first_name, t2.last_name, t1.customer_id, COUNT(*) AS Total_orders FROM all_orders t1 INNER JOIN customers t2 ON t1.customer_id=t2.customer_id GROUP BY t1.customer_id ORDER BY Total_orders DESC;
 
 b. query for the most sold product
 SELECT t2.product_name, t1.product_id, SUM(t1.quantity) AS TotalQuantity FROM ordered_items t1 INNER JOIN products t2 ON t1.product_id=t2.product_id GROUP BY product_id ORDER BY TotalQuantity DESC;
@@ -88,17 +88,5 @@ d.reporting query for top 100 customers ranked by last order value
 SELECT  t2.first_name, t2.last_name, t1.customer_id, t1.order_id, t1.order_value, t1.order_date FROM all_orders t1 INNER JOIN customers t2 ON t1.customer_id=t2.customer_id WHERE t1.order_date IN (SELECT MAX(order_date) FROM all_orders GROUP BY customer_id) GROUP BY t1.customer_id ORDER BY t1.order_value DESC LIMIT 100;
 
 e. reporting query for customers with least orders in past 6months
-SELECT t2.first_name, t2.last_name, t1.customer_id, t1.order_id, t1.order_value, t1.order_date, COUNT(*) AS orders_last_6months FROM all_orders t1 INNER JOIN customers t2 ON t1.customer_id=t2.customer_id WHERE t1.order_date IN (SELECT order_date FROM all_orders where order_date > curdate() - interval 6 month GROUP BY customer_id) GROUP BY t1.customer_id ORDER BY orders_last_6months ASC;
-
-
-
-update the total price in ordered_item
-SELECT t1.itemIndex, t2.price*t1.quantity as Total_price FROM ordered_items t1, products t2 WHERE t2.product_id=t1.product_id ORDER BY t1.itemIndex ASC
-
-UPDATE ordered_items t3
-INNER JOIN (SELECT t1.itemIndex AS indexOfTotal, t2.price*t1.quantity as Total_price FROM ordered_items t1, products t2 WHERE t2.product_id=t1.product_id ORDER BY t1.itemIndex ASC) t4
-ON t3.itemIndex=t4.indexOfTotal
-SET t3.total_price = t4.Total_price
-WHERE
-t3.itemIndex = t4.indexOfTotal;
+SELECT t2.first_name, t2.last_name, t1.customer_id, COUNT(*) AS orders_last_6months FROM all_orders t1 INNER JOIN customers t2 ON t1.customer_id=t2.customer_id WHERE t1.order_date IN (SELECT order_date FROM all_orders where order_date > curdate() - interval 6 month GROUP BY customer_id) GROUP BY t1.customer_id ORDER BY orders_last_6months ASC;
 
